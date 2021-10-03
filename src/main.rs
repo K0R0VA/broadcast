@@ -1,27 +1,29 @@
 mod broadcaster;
+mod messages;
+mod room;
+mod session;
+mod state;
+mod event;
 
-use actix_web::{
-    post,
-    web::{self, Path},
-    App, HttpResponse, HttpServer, Result,
-};
-use broadcast_context::BroadcastContext;
-
-use crate::broadcaster::Broadcaster;
+use actix::{Actor, Addr};
+use actix_web::{post, web::Data, App, HttpResponse, HttpServer, Result};
+use messages::CreateRoom;
+use state::State;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| App::new().service(start_broadcast))
-        .bind("192.168.0.7:8081")?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .app_data(Data::new(State::default().start()))
+            .service(create_room)
+    })
+    .bind("127.0.0.1:8081")?
+    .run()
+    .await
 }
 
-#[post("/room/{id}/start")]
-async fn start_broadcast(description: web::Bytes, id: Path<i32>) -> Result<HttpResponse> {
-    let line = std::str::from_utf8(&description)?;
-    let (_, response) = BroadcastContext::<Broadcaster>::create_with_addr(line, Broadcaster)
-        .await.unwrap();
-    let response = HttpResponse::Ok().body(response).await?;
-    Ok(response.into())
+#[post("/create-room")]
+async fn create_room(room_name: String, state: Data<Addr<State>>) -> Result<HttpResponse> {
+    let _ = state.send(CreateRoom { room_name }).await;
+    HttpResponse::Created().await
 }

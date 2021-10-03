@@ -218,6 +218,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-web-actors"
+version = "4.0.0-beta.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b43c8e03f1877bc010316de455ee479aa0de0ae0717d49041db5f38fa192de"
+dependencies = [
+ "actix",
+ "actix-codec",
+ "actix-http",
+ "actix-web",
+ "bytes",
+ "bytestring",
+ "futures-core",
+ "pin-project",
+ "tokio",
+]
+
+[[package]]
 name = "actix-web-codegen"
 version = "0.5.0-beta.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -447,13 +464,18 @@ version = "0.1.0"
 dependencies = [
  "actix",
  "actix-web",
+ "actix-web-actors",
  "anyhow",
  "broadcast-context",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
 name = "broadcast-context"
 version = "0.1.0"
+source = "git+https://github.com/K0R0VA/broadcast-context.git#c31f51bf07574d94eb93e85d36e036f952523ba1"
 dependencies = [
  "actix",
  "anyhow",
@@ -2094,9 +2116,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.77"
+version = "1.0.78"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5239bc68e0fef57495900cfea4e8dc75596d9a319d7e16b1e0a440d24e6fe0a0"
+checksum = "a4eac2e6c19f5c3abc0c229bea31ff0b9b091c7b14990e8924b92902a303a0c0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2272,9 +2294,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-core"
-version = "0.1.20"
+version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46125608c26121c81b0c6d693eab5a420e416da7e43c426d2e8f7df8da8a3acf"
+checksum = "1f4ed65637b8390770814083d20756f87bfa2c21bf2f110babdc5438351746e4"
 dependencies = [
  "lazy_static",
 ]
@@ -2471,9 +2493,9 @@ dependencies = [
 
 [[package]]
 name = "webrtc"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96b7728baecb0ff569f0e440b23c17f13d0af75607eba3847bbbb8970fdffd6b"
+checksum = "a7f5ff7d0a3d2ff682ac56c2c874bf8490f24dbeef3d29d277a5a0a6b3f160bc"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2512,9 +2534,9 @@ dependencies = [
 
 [[package]]
 name = "webrtc-data"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "642939392136c5ede0a0e9f53639474f0248bdaaa8d0a6df70d89999b5bea9df"
+checksum = "d7478e30eb546688bc85fb45455f40ce09a881b5760b9d02c0f1190fd042dd2f"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2620,9 +2642,9 @@ dependencies = [
 
 [[package]]
 name = "webrtc-sctp"
-version = "0.3.6"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68ba34607f3d5665db733a43c2a526d87fc32211e34dbdd8fb6bde6eb5aa5914"
+checksum = "06984009aa1d5a2297c477789f8037b195e10bde4bcbb5579e0b25d6e6dc44cd"
 dependencies = [
  "anyhow",
  "async-trait",
