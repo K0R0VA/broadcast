@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "../portal-chat"
+		},
+		{
+			"path": "../portal-chat/src"
+		},
+		{
+			"path": "../portal-chat/client/src/app"
+		}
+	]
+}

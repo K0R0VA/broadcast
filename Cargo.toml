@@ -1,0 +1,15 @@
+[package]
+name = "broadcast"
+version = "0.1.0"
+edition = "2021"
+
+[build]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.41"
+actix-web = "4.0.0-beta.9"
+actix = "0.12.0"
+broadcast-context = { path = "../broadcast-context" }
