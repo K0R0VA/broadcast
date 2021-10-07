@@ -1,4 +1,5 @@
 use actix::{Addr, MailboxError, Message};
+use broadcast_context::Recipient;
 use uuid::Uuid;
 
 use crate::{broadcaster::Broadcaster, room::Room, session::Session};
@@ -40,4 +41,20 @@ pub struct EnterTheRoom {
 
 impl Message for EnterTheRoom {
     type Result = Option<Addr<Room>>;
+}
+
+pub struct NewRecipient {
+    pub recipient: Recipient
+}
+
+impl Message for NewRecipient {
+    type Result = ();
+}
+
+pub struct RecipientResponse {
+    pub description: String
+}
+
+impl Message for RecipientResponse {
+    type Result = ();
 }

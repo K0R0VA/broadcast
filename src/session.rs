@@ -2,10 +2,10 @@ use std::time::Duration;
 
 use actix::{
     clock::Instant, Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutureSpawner,
-    Running, StreamHandler, WrapFuture,
+    Handler, Running, StreamHandler, WrapFuture,
 };
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
-use broadcast_context::BroadcastContext;
+use broadcast_context::{BroadcastContext, recipient::RecipientResponse};
 use uuid::Uuid;
 
 use crate::{
@@ -109,10 +109,15 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                             .wait(ctx);
                     }
                     ClientEvent::StartBroadcast(broadcast_key) => {
-                        BroadcastContext::create_with_addr(broadcast_key, Broadcaster)
+                        let broadcast = Broadcaster {
+                            local_track: None,
+                            recipients: Vec::default(),
+                            session: ctx.address()
+                        };
+                        BroadcastContext::create_with_addr(broadcast_key, broadcast)
                             .into_actor(self)
                             .then(|result, actor, ctx| {
-                                if let Ok((broadcaster, response)) = result { 
+                                if let Ok((broadcaster, response)) = result {
                                     actor.broadcaster = Some(broadcaster);
                                     ctx.text(response);
                                 }
@@ -136,5 +141,20 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
             }
             _ => unimplemented!(),
         }
+    }
+}
+
+impl Handler<RecipientResponse> for Session {
+    type Result = ();
+
+    fn handle(&mut self, msg: RecipientResponse, ctx: &mut Self::Context) -> Self::Result {
+        ctx.text(msg.description);
+    }
+}
+
+impl Handler<RecipientResponse> for Session {
+    type Result = ();
+    fn handle(&mut self, msg: RecipientResponse, ctx: &mut Self::Context) -> Self::Result {
+        ctx.text(msg.0)
     }
 }
