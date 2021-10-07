@@ -1,17 +1,16 @@
 use std::sync::Arc;
 
 use actix::{
-    Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, ContextFutureSpawner, Handler,
+    Actor, ActorContext, ActorFutureExt, Addr, ContextFutureSpawner, Handler,
     WrapFuture,
 };
 use broadcast_context::{
     recipient::RecipientLocalTrackMessage, BroadcastContext, LocalTrackMessage, Recipient,
 };
-use tokio::task::spawn_blocking;
 use webrtc::media::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 
 use crate::{
-    messages::{CloseSession, NewRecipient, RecipientResponse},
+    messages::{CloseSession, NewRecipient},
     session::Session,
 };
 
@@ -47,9 +46,9 @@ impl Handler<NewRecipient> for Broadcaster {
 
     fn handle(&mut self, msg: NewRecipient, ctx: &mut Self::Context) -> Self::Result {
         if let Some(ref local_track) = self.local_track {
-            let recipent = msg.recipient.start();
+            let recipient = msg.recipient.start();
             self.recipients.push(recipient.clone());
-            recipent
+            recipient
                 .send(RecipientLocalTrackMessage {
                     address: self.session.clone(),
                     local_track: Arc::clone(local_track),

@@ -5,13 +5,13 @@ use actix::{
     Handler, Running, StreamHandler, WrapFuture,
 };
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
-use broadcast_context::{BroadcastContext, recipient::RecipientResponse};
+use broadcast_context::{recipient::RecipientResponse, BroadcastContext, Recipient};
 use uuid::Uuid;
 
 use crate::{
     broadcaster::Broadcaster,
-    event::ClientEvent,
-    messages::{CloseSession, EnterTheRoom, NewSession},
+    event::{ClientEvent, ServerEvent},
+    messages::{CloseSession, EnterTheRoom, NewRecipient, NewSession},
     room::Room,
     state::State,
 };
@@ -112,20 +112,36 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                         let broadcast = Broadcaster {
                             local_track: None,
                             recipients: Vec::default(),
-                            session: ctx.address()
+                            session: ctx.address(),
                         };
                         BroadcastContext::create_with_addr(broadcast_key, broadcast)
                             .into_actor(self)
                             .then(|result, actor, ctx| {
                                 if let Ok((broadcaster, response)) = result {
                                     actor.broadcaster = Some(broadcaster);
-                                    ctx.text(response);
+                                    let response = ServerEvent::BroadcastDescription(response);
+                                    ctx.text(serde_json::to_string(&response).unwrap());
                                 }
                                 actix::fut::ready(())
                             })
                             .wait(ctx);
                     }
-                    ClientEvent::StartWatch(receiver_key) => {}
+                    ClientEvent::StartWatch(receiver_key) => {
+                        Recipient::new(receiver_key)
+                            .into_actor(self)
+                            .then(|result, actor, ctx| {
+                                if let (Ok(recipient), Some(broadcast)) =
+                                    (result, &actor.broadcaster)
+                                {
+                                    broadcast.send(NewRecipient { recipient })
+                                        .into_actor(actor)
+                                        .then(|_, _, _| actix::fut::ready(()))
+                                        .wait(ctx);
+                                }
+                                actix::fut::ready(())
+                            })
+                            .wait(ctx);
+                    }
                 }
             }
             Ok(Message::Ping(ref msg)) => {
@@ -148,13 +164,7 @@ impl Handler<RecipientResponse> for Session {
     type Result = ();
 
     fn handle(&mut self, msg: RecipientResponse, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(msg.description);
-    }
-}
-
-impl Handler<RecipientResponse> for Session {
-    type Result = ();
-    fn handle(&mut self, msg: RecipientResponse, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(msg.0)
+        let response = ServerEvent::RecipientDescription(msg.0);
+        ctx.text(serde_json::to_string(&response).unwrap());
     }
 }
