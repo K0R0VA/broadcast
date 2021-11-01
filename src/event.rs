@@ -1,8 +1,9 @@
 use serde::{Serialize, Deserialize};
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize)]
 pub enum ClientEvent {
-    EnterTheRoom(String),
+    EnterTheRoom(Uuid),
     StartBroadcast(String),
     StartWatch(String),
 }

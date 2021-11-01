@@ -1,34 +1,34 @@
-use actix::{Addr, MailboxError, Message};
+use actix::{Addr, Message};
 use broadcast_context::Recipient;
 use uuid::Uuid;
 
-use crate::{broadcaster::Broadcaster, room::Room, session::Session};
+use crate::{room::Room, session::Session};
 
 pub struct CreateRoom {
     pub room_name: String,
 }
 
 impl Message for CreateRoom {
-    type Result = ();
+    type Result = Option<Uuid>;
 }
 
 pub struct NewSession {
     pub id: Uuid,
-    pub session: Addr<Session>
+    pub session: Addr<Session>,
 }
 
 impl Message for NewSession {
     type Result = ();
 }
 
-pub struct CloseSession (pub Uuid);
+pub struct CloseSession(pub Uuid);
 
 impl Message for CloseSession {
     type Result = ();
 }
 
 pub struct CloseRoom {
-    pub room_name: String,
+    pub room_id: Uuid,
 }
 
 impl Message for CloseRoom {
@@ -36,15 +36,15 @@ impl Message for CloseRoom {
 }
 
 pub struct EnterTheRoom {
-    pub room_name: String,
+    pub room_id: Uuid,
 }
 
 impl Message for EnterTheRoom {
-    type Result = Option<Addr<Room>>;
+    type Result = Option<(String, Addr<Room>)>;
 }
 
 pub struct NewRecipient {
-    pub recipient: Recipient
+    pub recipient: Recipient,
 }
 
 impl Message for NewRecipient {
@@ -52,7 +52,7 @@ impl Message for NewRecipient {
 }
 
 pub struct RecipientResponse {
-    pub description: String
+    pub description: String,
 }
 
 impl Message for RecipientResponse {

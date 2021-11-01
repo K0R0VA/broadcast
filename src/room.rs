@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{messages::{CloseRoom, CloseSession, NewSession}, session::Session, state::State};
 
 pub struct Room {
-    pub name: String,
+    pub uuid: Uuid,
     pub sessions: HashMap<Uuid, Addr<Session>>,
     pub state: Addr<State>,
 }
@@ -16,7 +16,7 @@ impl Actor for Room {
     fn stopping(&mut self, ctx: &mut Self::Context) -> actix::Running {
         self.state
             .send(CloseRoom {
-                room_name: self.name.clone(),
+                room_id: self.uuid,
             })
             .into_actor(self)
             .then(|_, _, _| actix::fut::ready(()))

@@ -1,11 +1,15 @@
-use crate::{messages::{CloseRoom, CloseSession, CreateRoom, EnterTheRoom, NewSession}, room::Room, session::Session};
+use crate::{
+    messages::{CloseRoom, CloseSession, CreateRoom, EnterTheRoom, NewSession},
+    room::Room,
+    session::Session,
+};
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
-use uuid::Uuid;
 use std::collections::HashMap;
+use uuid::Uuid;
 
 #[derive(Default)]
 pub struct State {
-    rooms: HashMap<String, Addr<Room>>,
+    rooms: HashMap<Uuid, (String, Addr<Room>)>,
     sessions: HashMap<Uuid, Addr<Session>>,
 }
 
@@ -14,14 +18,20 @@ impl Actor for State {
 }
 
 impl Handler<CreateRoom> for State {
-    type Result = ();
+    type Result = Option<Uuid>;
 
     fn handle(&mut self, msg: CreateRoom, ctx: &mut Self::Context) -> Self::Result {
-        let room = Room {name: msg.room_name.clone(), state: ctx.address(), sessions: Default::default()}.start();
-        self.rooms.insert(msg.room_name, room);
+        let id: Uuid = Uuid::new_v4();
+        let room = Room {
+            uuid: id,
+            state: ctx.address(),
+            sessions: Default::default(),
+        }
+        .start();
+        self.rooms.insert(id, (msg.room_name, room));
+        Some(id)
     }
 }
-
 
 impl Handler<NewSession> for State {
     type Result = ();
@@ -43,14 +53,14 @@ impl Handler<CloseRoom> for State {
     type Result = ();
 
     fn handle(&mut self, msg: CloseRoom, _: &mut Self::Context) -> Self::Result {
-        self.rooms.remove(&msg.room_name);
+        self.rooms.remove(&msg.room_id);
     }
 }
 
 impl Handler<EnterTheRoom> for State {
-    type Result = Option<Addr<Room>>;
+    type Result = Option<(String, Addr<Room>)>;
 
     fn handle(&mut self, msg: EnterTheRoom, ctx: &mut Self::Context) -> Self::Result {
-        self.rooms.get(&msg.room_name).map(|room| room.clone())
+        self.rooms.get(&msg.room_id).map(|room| room.clone())
     }
 }

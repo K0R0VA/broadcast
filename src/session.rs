@@ -89,12 +89,12 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
             Ok(Message::Text(event)) => {
                 let event: ClientEvent = serde_json::from_str(&event).expect("not valid json");
                 match event {
-                    ClientEvent::EnterTheRoom(room_name) => {
+                    ClientEvent::EnterTheRoom(room_id) => {
                         self.state
-                            .send(EnterTheRoom { room_name })
+                            .send(EnterTheRoom { room_id })
                             .into_actor(self)
                             .then(|result, actor, ctx| {
-                                if let Ok(Some(room)) = result {
+                                if let Ok(Some((_, room))) = result {
                                     room.send(NewSession {
                                         id: actor.id,
                                         session: ctx.address(),
@@ -133,7 +133,8 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                                 if let (Ok(recipient), Some(broadcast)) =
                                     (result, &actor.broadcaster)
                                 {
-                                    broadcast.send(NewRecipient { recipient })
+                                    broadcast
+                                        .send(NewRecipient { recipient })
                                         .into_actor(actor)
                                         .then(|_, _, _| actix::fut::ready(()))
                                         .wait(ctx);
