@@ -61,7 +61,7 @@ impl Handler<EnterTheRoom> for State {
     type Result = Option<(String, Addr<Room>)>;
 
     fn handle(&mut self, msg: EnterTheRoom, _: &mut Self::Context) -> Self::Result {
-        self.rooms.get(&msg.room_id).map(|room| room.clone())
+        self.rooms.get(&msg.room_id).cloned()
     }
 }
 

@@ -283,7 +283,7 @@ where
                         tokio::spawn(async move {
                             // Create Track that we send video back to browser on
                             let local_track = Arc::new(TrackLocalStaticRTP::new(
-                                track.codec().await.capability.clone(),
+                                track.codec().await.capability,
                                 "video".to_owned(),
                                 "webrtc-rs".to_owned(),
                             ));
@@ -311,7 +311,7 @@ where
     async fn on_peer_connection_state_change(&self) {
         self.connection
             .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
-                print!("Peer Connection State has changed: {}\n", s);
+                println!("Peer Connection State has changed: {}", s);
                 Box::pin(async {})
             }))
             .await;

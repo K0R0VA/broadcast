@@ -124,7 +124,7 @@ where
                 // This will notify you when the peer has connected/disconnected
                 peer_connection
                     .on_peer_connection_state_change(Box::new(move |s: RTCPeerConnectionState| {
-                        print!("Peer Connection State has changed: {}\n", s);
+                        println!("Peer Connection State has changed: {}", s);
                         Box::pin(async {})
                     }))
                     .await;
