@@ -5,13 +5,17 @@ use actix::{
     Handler, Running, StreamHandler, WrapFuture,
 };
 use actix_web_actors::ws::{Message, ProtocolError, WebsocketContext};
-use broadcast_context::{recipient::RecipientResponse, BroadcastContext, Recipient};
 use uuid::Uuid;
 
 use crate::{
     broadcaster::Broadcaster,
+    broadcaster_context::BroadcastContext,
     event::{ClientEvent, ServerEvent},
-    messages::{CloseSession, EnterTheRoom, NewRecipient, NewSession},
+    messages::{
+        CloseSession, EnterTheRoom, NewRecipient, NewSession, NewUserInRoom, RoomSessions,
+        StartWatch,
+    },
+    recipient::{Recipient, RecipientResponse},
     room::Room,
     state::State,
 };
@@ -28,6 +32,15 @@ pub struct Session {
 }
 
 impl Session {
+    pub fn new(state: Addr<State>, id: Uuid) -> Self {
+        Self {
+            id,
+            broadcaster: None,
+            room: None,
+            state,
+            hb: Instant::now(),
+        }
+    }
     fn init_heartbeat(&self, ctx: &mut WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |actor, ctx| {
             if Instant::now().duration_since(actor.hb) > CLIENT_TIMEOUT {
@@ -36,6 +49,21 @@ impl Session {
             }
             ctx.ping(b"PING");
         });
+    }
+    fn leave_room(&mut self, ctx: &mut WebsocketContext<Self>) {
+        if let Some(room) = self.room.take() {
+            room.send(CloseSession(self.id))
+                .into_actor(self)
+                .then(|_, _, _| actix::fut::ready(()))
+                .wait(ctx);
+        }
+        if let Some(broadcaster) = self.broadcaster.take() {
+            broadcaster
+                .send(CloseSession(self.id))
+                .into_actor(self)
+                .then(|_, _, _| actix::fut::ready(()))
+                .wait(ctx);
+        }
     }
 }
 
@@ -52,10 +80,7 @@ impl Actor for Session {
             })
             .into_actor(self)
             .then(|res, _, ctx| {
-                match res {
-                    Ok(_) => (),
-                    _ => ctx.stop(),
-                }
+                let _ = res.map_err(|_| ctx.stop());
                 actix::fut::ready(())
             })
             .wait(ctx);
@@ -66,19 +91,7 @@ impl Actor for Session {
             .into_actor(self)
             .then(|_, _, _| actix::fut::ready(()))
             .wait(ctx);
-        if let Some(ref room) = self.room {
-            room.send(CloseSession(self.id))
-                .into_actor(self)
-                .then(|_, _, _| actix::fut::ready(()))
-                .wait(ctx);
-        }
-        if let Some(ref broadcaster) = self.broadcaster {
-            broadcaster
-                .send(CloseSession(self.id))
-                .into_actor(self)
-                .then(|_, _, _| actix::fut::ready(()))
-                .wait(ctx);
-        }
+        self.leave_room(ctx);
         Running::Stop
     }
 }
@@ -108,11 +121,13 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                             })
                             .wait(ctx);
                     }
+                    ClientEvent::LeaveTheRoom => self.leave_room(ctx),
                     ClientEvent::StartBroadcast(broadcast_key) => {
                         let broadcast = Broadcaster {
                             local_track: None,
                             recipients: Vec::default(),
                             session: ctx.address(),
+                            session_id: self.id,
                         };
                         BroadcastContext::create_with_addr(broadcast_key, broadcast)
                             .into_actor(self)
@@ -126,22 +141,25 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                             })
                             .wait(ctx);
                     }
-                    ClientEvent::StartWatch(receiver_key) => {
-                        Recipient::new(receiver_key)
+                    ClientEvent::StartWatch {
+                        broadcaster_id,
+                        local_description,
+                    } => {
+                        let addr = ctx.address();
+                        if let Some(ref room) = self.room {
+                            room.send(StartWatch {
+                                broadcaster_id,
+                                local_description,
+                                recipient: addr,
+                                recipient_id: self.id,
+                            })
                             .into_actor(self)
-                            .then(|result, actor, ctx| {
-                                if let (Ok(recipient), Some(broadcast)) =
-                                    (result, &actor.broadcaster)
-                                {
-                                    broadcast
-                                        .send(NewRecipient { recipient })
-                                        .into_actor(actor)
-                                        .then(|_, _, _| actix::fut::ready(()))
-                                        .wait(ctx);
-                                }
+                            .then(|res, _, ctx| {
+                                let _ = res.map_err(|_| ctx.stop());
                                 actix::fut::ready(())
                             })
                             .wait(ctx);
+                        }
                     }
                 }
             }
@@ -165,7 +183,50 @@ impl Handler<RecipientResponse> for Session {
     type Result = ();
 
     fn handle(&mut self, msg: RecipientResponse, ctx: &mut Self::Context) -> Self::Result {
-        let response = ServerEvent::RecipientDescription(msg.0);
+        let response = ServerEvent::RecipientDescription {
+            description: msg.description,
+            broadcaster_id: msg.broadcaster_id,
+        };
         ctx.text(serde_json::to_string(&response).unwrap());
+    }
+}
+
+impl Handler<NewUserInRoom> for Session {
+    type Result = ();
+
+    fn handle(&mut self, msg: NewUserInRoom, ctx: &mut Self::Context) -> Self::Result {
+        ctx.text(serde_json::to_string(&ServerEvent::NewSession(msg.0)).unwrap());
+    }
+}
+
+impl Handler<RoomSessions> for Session {
+    type Result = ();
+
+    fn handle(&mut self, msg: RoomSessions, ctx: &mut Self::Context) -> Self::Result {
+        ctx.text(serde_json::to_string(&ServerEvent::RoomSessions(msg.0)).unwrap());
+    }
+}
+
+impl Handler<StartWatch> for Session {
+    type Result = ();
+
+    fn handle(&mut self, msg: StartWatch, ctx: &mut Self::Context) -> Self::Result {
+        Recipient::new(msg.local_description)
+            .into_actor(self)
+            .then(move |result, actor, ctx| {
+                if let (Ok(recipient), Some(broadcast)) = (result, &actor.broadcaster) {
+                    broadcast
+                        .send(NewRecipient {
+                            recipient,
+                            recipient_id: msg.recipient_id,
+                            recipient_addr: msg.recipient,
+                        })
+                        .into_actor(actor)
+                        .then(|_, _, _| actix::fut::ready(()))
+                        .wait(ctx);
+                }
+                actix::fut::ready(())
+            })
+            .wait(ctx);
     }
 }

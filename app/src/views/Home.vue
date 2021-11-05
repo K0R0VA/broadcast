@@ -11,14 +11,13 @@ import { Vue } from "vue-class-component";
 
 export default class Home extends Vue {
   private roomName = "";
-  private createRoom() {
-    fetch("http://127.0.0.1:8081/create-room", {
+  private async createRoom() {
+    const response = await fetch("http://127.0.0.1:8081/create-room", {
       body: this.roomName,
       method: "POST",
-    }).then(async (response) => {
-      let id = await response.json();
-      this.$router.push({ name: "Room", params: { roomId: id } });
     });
+    const id = await response.json();
+    this.$router.push({ name: "Room", params: { roomId: id } });
   }
 }
 </script>

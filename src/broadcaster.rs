@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use actix::{
-    Actor, ActorContext, ActorFutureExt, Addr, ContextFutureSpawner, Handler,
-    WrapFuture,
+use crate::{
+    broadcaster_context::BroadcastContext,
+    broadcaster_context::LocalTrackMessage,
+    recipient::{Recipient, RecipientLocalTrackMessage},
 };
-use broadcast_context::{
-    recipient::RecipientLocalTrackMessage, BroadcastContext, LocalTrackMessage, Recipient,
-};
+use actix::{Actor, ActorContext, ActorFutureExt, Addr, ContextFutureSpawner, Handler, WrapFuture};
+use uuid::Uuid;
 use webrtc::media::track::track_local::track_local_static_rtp::TrackLocalStaticRTP;
 
 use crate::{
@@ -15,6 +15,7 @@ use crate::{
 };
 
 pub struct Broadcaster {
+    pub session_id: Uuid,
     pub local_track: Option<Arc<TrackLocalStaticRTP>>,
     pub recipients: Vec<Addr<Recipient>>,
     pub session: Addr<Session>,
@@ -50,7 +51,8 @@ impl Handler<NewRecipient> for Broadcaster {
             self.recipients.push(recipient.clone());
             recipient
                 .send(RecipientLocalTrackMessage {
-                    address: self.session.clone(),
+                    address: msg.recipient_addr,
+                    broadcaster_id: self.session_id,
                     local_track: Arc::clone(local_track),
                 })
                 .into_actor(self)

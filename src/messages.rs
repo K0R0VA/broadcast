@@ -1,8 +1,8 @@
 use actix::{Addr, Message};
-use broadcast_context::Recipient;
+use recipient::Recipient;
 use uuid::Uuid;
 
-use crate::{room::Room, session::Session};
+use crate::{recipient, room::Room, session::Session};
 
 pub struct CreateRoom {
     pub room_name: String,
@@ -44,7 +44,9 @@ impl Message for EnterTheRoom {
 }
 
 pub struct NewRecipient {
+    pub recipient_id: Uuid,
     pub recipient: Recipient,
+    pub recipient_addr: Addr<Session>
 }
 
 impl Message for NewRecipient {
@@ -56,5 +58,36 @@ pub struct RecipientResponse {
 }
 
 impl Message for RecipientResponse {
+    type Result = ();
+}
+
+pub struct GetRoomName {
+    pub room_id: Uuid,
+}
+
+impl Message for GetRoomName {
+    type Result = Option<String>;
+}
+
+pub struct NewUserInRoom(pub Uuid);
+
+impl Message for NewUserInRoom {
+    type Result = ();
+}
+
+pub struct RoomSessions(pub Vec<Uuid>);
+
+impl Message for RoomSessions {
+    type Result = ();
+}
+
+pub struct StartWatch {
+    pub recipient: Addr<Session>,
+    pub local_description: String,
+    pub broadcaster_id: Uuid,
+    pub recipient_id: Uuid,
+}
+
+impl Message for StartWatch {
     type Result = ();
 }

@@ -1,6 +1,24 @@
 <template>
-  <router-view />
+  <router-view v-if="isConnectionOpen"/>
 </template>
+
+<script lang="ts">
+import { Vue } from "vue-class-component";
+import { ProvideReactive } from "vue-property-decorator";
+
+export default class App extends Vue {
+  @ProvideReactive()
+  private websocket: WebSocket;
+  private userId: string;
+  private isConnectionOpen = false;
+  beforeCreate() {
+    this.websocket = new WebSocket("ws://127.0.0.1:8081/start");
+    this.websocket.addEventListener('open', () => {
+      this.isConnectionOpen = true;
+    })
+  }
+}
+</script>
 
 <style>
 #app {

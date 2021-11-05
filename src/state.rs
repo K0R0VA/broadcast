@@ -1,10 +1,10 @@
 use crate::{
-    messages::{CloseRoom, CloseSession, CreateRoom, EnterTheRoom, NewSession},
+    messages::{CloseRoom, CloseSession, CreateRoom, EnterTheRoom, GetRoomName, NewSession},
     room::Room,
     session::Session,
 };
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use uuid::Uuid;
 
 #[derive(Default)]
@@ -60,7 +60,17 @@ impl Handler<CloseRoom> for State {
 impl Handler<EnterTheRoom> for State {
     type Result = Option<(String, Addr<Room>)>;
 
-    fn handle(&mut self, msg: EnterTheRoom, ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: EnterTheRoom, _: &mut Self::Context) -> Self::Result {
         self.rooms.get(&msg.room_id).map(|room| room.clone())
+    }
+}
+
+impl Handler<GetRoomName> for State {
+    type Result = Option<String>;
+
+    fn handle(&mut self, msg: GetRoomName, _: &mut Self::Context) -> Self::Result {
+        self.rooms
+            .get(&msg.room_id)
+            .map(|(room_name, _)| room_name.clone())
     }
 }
