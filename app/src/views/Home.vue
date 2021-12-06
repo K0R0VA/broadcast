@@ -12,7 +12,7 @@ import { Vue } from "vue-class-component";
 export default class Home extends Vue {
   private roomName = "";
   private async createRoom() {
-    const response = await fetch("http://127.0.0.1:8081/create-room", {
+    const response = await fetch("https://192.168.0.7:8081/create-room", {
       body: this.roomName,
       method: "POST",
     });

@@ -11,8 +11,7 @@
 
 <script lang="ts">
 import { Vue } from "vue-class-component";
-import { InjectReactive } from "vue-property-decorator";
-Vue.registerHooks(["beforeRouteEnter", "beforeRouteLeave"]);
+Vue.registerHooks(["beforeRouteEnter"]);
 
 export default class Room extends Vue {
   private usersIds: string[] = [];
@@ -20,7 +19,10 @@ export default class Room extends Vue {
   private sessions: Map<string, string> = new Map();
   private peer_connections: Map<string, RTCPeerConnection> = new Map();
 
-  @InjectReactive()
+  beforeCreate() {
+    this.websocket = new WebSocket("wss://192.168.0.7:8081/start");
+  }
+
   private websocket: WebSocket;
 
   beforeRouteEnter(
@@ -30,30 +32,40 @@ export default class Room extends Vue {
   ) {
     next(async (self: Room) => {
       const response = await fetch(
-        `http://127.0.0.1:8081/room/${to.params.roomId}/name`
+        `https://192.168.0.7:8081/room/${to.params.roomId}/name`
       );
       const name = await response.json();
       self.roomName = name;
     });
   }
 
-  beforeRouteLeave(_to: unknown, _from: unknown, next: () => void) {
-    this.websocket.send(JSON.stringify({ type: "LeaveTheRoom", data: "" }));
-    next();
+  unmounted() {
+    this.websocket.close();
+    this.beforeRoomLeave();
+  }
+
+  beforeRoomLeave() {
+    this.peer_connections.forEach((connection) => {
+      connection.close();
+    });
+    this.peer_connections.clear();
+    this.websocket.send(JSON.stringify({ type: "LeaveTheRoom" }));
   }
 
   mounted() {
-    this.websocket.send(
-      JSON.stringify({ type: "EnterTheRoom", data: this.roomId })
-    );
-    this.websocket.addEventListener("message", (e) => {
+    this.websocket.onopen = () => {
+      this.websocket.send(
+        JSON.stringify({ type: "EnterTheRoom", data: this.roomId })
+      );
+    };
+    this.websocket.addEventListener("message", async (e) => {
       const event = JSON.parse(e.data);
       switch (event.type) {
         case "RoomSessions": {
           this.usersIds = event.data;
-          this.usersIds.forEach((userId) => {
-            this.startRecive(userId);
-          });
+          await Promise.all(
+            this.usersIds.map((userId) => this.startRecive(userId))
+          );
           break;
         }
         case "BroadcastDescription": {
@@ -63,12 +75,12 @@ export default class Room extends Vue {
         case "NewSession": {
           console.log("asd");
           this.usersIds.push(event.data);
-          this.startRecive(event.data);
+          await this.startRecive(event.data);
           break;
         }
         case "RecipientDescription": {
           const { broadcaster_id, description } = event.data;
-          this.startSession(broadcaster_id, description);
+          await this.startSession(broadcaster_id, description);
           break;
         }
       }
@@ -80,32 +92,11 @@ export default class Room extends Vue {
     let pc = new RTCPeerConnection({
       iceServers: [
         {
-          urls: [
-            // "stun:stun.l.google.com:19302",
-            // "stun:stun01.sipphone.com",
-            // "stun:stun.ekiga.net",
-            // "stun:stun.fwdnet.net",
-            // "stun:stun.ideasip.com",
-            // "stun:stun.iptel.org",
-            // "stun:stun.rixtelecom.se",
-            // "stun:stun.schlund.de",
-            "stun:stun.l.google.com:19302",
-            // "stun:stun1.l.google.com:19302",
-            // "stun:stun2.l.google.com:19302",
-            // "stun:stun3.l.google.com:19302",
-            // "stun:stun4.l.google.com:19302",
-            // "stun:stunserver.org",
-            // "stun:stun.softjoys.com",
-            // "stun:stun.voiparound.com",
-            // "stun:stun.voipbuster.com",
-            // "stun:stun.voipstunt.com",
-            // "stun:stun.voxgratia.org",
-            // "stun:stun.xten.com",
-          ],
+          urls: "stun:stun.l.google.com:19302",
         },
       ],
     });
-    pc.oniceconnectionstatechange = () => console.log(pc.iceConnectionState);
+    pc.oniceconnectionstatechange = (e) => console.log(pc.connectionState);
     pc.onicecandidate = (event) => {
       if (event.candidate === null) {
         this.websocket.send(
@@ -128,17 +119,18 @@ export default class Room extends Vue {
     stream.getTracks().forEach((track) => pc.addTrack(track, stream));
     // @ts-ignore
     document.getElementById("self").srcObject = stream;
-    const description = await pc.createOffer();
+    const description = await pc.createOffer({ iceRestart: true });
     await pc.setLocalDescription(description);
     this.peer_connections.set("self", pc);
   }
 
-  private startSession(userId: string, description: string) {
-    this.peer_connections
+  private async startSession(userId: string, description: string) {
+    await this.peer_connections
       .get(userId)
       .setRemoteDescription(
         new RTCSessionDescription(JSON.parse(atob(description)))
-      );
+      )
+      .catch((e) => console.log(e));
   }
 
   private async startRecive(userId: string) {

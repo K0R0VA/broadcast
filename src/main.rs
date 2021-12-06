@@ -1,11 +1,13 @@
-mod broadcaster_context;
-mod recipient;
 mod broadcaster;
+mod broadcaster_context;
 mod event;
 mod messages;
+mod recipient;
 mod room;
 mod session;
 mod state;
+mod turn_server;
+mod tls;
 
 use actix::{Actor, Addr};
 use actix_cors::Cors;
@@ -18,12 +20,24 @@ use messages::CreateRoom;
 use serde::Serialize;
 use session::Session;
 use state::State;
+use tls::load_ssl;
+use tokio::signal::ctrl_c;
+use turn_server::create_turn_server;
 use uuid::Uuid;
 
 use crate::messages::GetRoomName;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::env::set_var("RUST_LOG", "actix_web=info");
+    tokio::spawn(async move {
+        let server = create_turn_server()
+            .await
+            .unwrap();
+        ctrl_c().await.unwrap();
+        server.close().await.unwrap();
+    });
+    let config = load_ssl();
     let state = Data::new(State::default().start());
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -37,7 +51,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_room_name)
             .service(start)
     })
-    .bind("127.0.0.1:8081")?
+    .bind_rustls("192.168.0.7:8081", config)?
     .run()
     .await
 }
@@ -46,7 +60,7 @@ async fn main() -> std::io::Result<()> {
 pub struct RoomId(Uuid);
 
 #[post("/create-room")]
-async fn create_room(room_name: String, state: Data<Addr<State>>) -> Result<HttpResponse> {
+async fn create_room(room_name: String, state: Data<Addr<State>>) ->  Result<HttpResponse> {
     if let Ok(Some(id)) = state.send(CreateRoom { room_name }).await {
         return Ok(HttpResponse::Created().json(RoomId(id)));
     };

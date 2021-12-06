@@ -7,15 +7,28 @@ version = "0.1.0"
 
 [dependencies]
 actix = "0.12.0"
-actix-cors = "0.6.0-beta.3"
-actix-web = "4.0.0-beta.9"
-actix-web-actors = "4.0.0-beta.7"
-futures="0.3.17"
+actix-cors = "=0.6.0-beta.2"
+actix-web = { version = "=4.0.0-beta.9", features = ["rustls"] }
+actix-http = "=3.0.0-beta.10"
+actix-web-actors = "=4.0.0-beta.7"
+rustls = "=0.19.0"
+tracing="0.1.29"
 anyhow = "1.0.41"
+base64 = "0.13.0"
+futures = "0.3.17"
+rtcp = "0.6.0"
 serde = "1.0"
 serde_json = "1.0"
 tokio = "1.0"
-rtcp = "0.6.0"
 uuid = {version = "0.8", features = ["serde", "v4"]}
-base64 = "0.13.0"
 webrtc = "0.2.2"
+turn = "0.5.1"
+webrtc-util = {version = "0.5.0", features = ["conn", "vnet"]}
+
+[dependencies.actix-tls]
+features = ["accept", "connect"]
+version = "=3.0.0-beta.5"
+
+[dependencies.actix-service]
+version = "=2.0.0"
+

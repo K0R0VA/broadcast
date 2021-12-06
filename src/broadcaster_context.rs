@@ -153,9 +153,9 @@ where
     A: Handler<LocalTrackMessage>,
 {
     pub async fn new(fut: ContextFut<A, BroadcastContext<A>>) -> anyhow::Result<Self> {
-        let mut m = MediaEngine::default();
+        let mut media = MediaEngine::default();
 
-        m.register_default_codecs()?;
+        media.register_default_codecs()?;
 
         // Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
         // This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
@@ -164,11 +164,11 @@ where
         let mut registry = Registry::new();
 
         // Use the default set of Interceptors
-        registry = register_default_interceptors(registry, &mut m)?;
+        registry = register_default_interceptors(registry, &mut media)?;
 
         // Create the API object with the MediaEngine
         let api = APIBuilder::new()
-            .with_media_engine(m)
+            .with_media_engine(media)
             .with_interceptor_registry(registry)
             .build();
 
@@ -176,25 +176,7 @@ where
         let config = RTCConfiguration {
             ice_servers: vec![RTCIceServer {
                 urls: vec![
-                    // "stun:stun01.sipphone.com".to_owned(),
-                    // "stun:stun.ekiga.net".to_owned(),
-                    // "stun:stun.fwdnet.net".to_owned(),
-                    // "stun:stun.ideasip.com".to_owned(),
-                    // "stun:stun.iptel.org".to_owned(),
-                    // "stun:stun.rixtelecom.se".to_owned(),
-                    // "stun:stun.schlund.de".to_owned(),
                     "stun:stun.l.google.com:19302".to_owned(),
-                    // "stun:stun1.l.google.com:19302".to_owned(),
-                    // "stun:stun2.l.google.com:19302".to_owned(),
-                    // "stun:stun3.l.google.com:19302".to_owned(),
-                    // "stun:stun4.l.google.com:19302".to_owned(),
-                    // "stun:stunserver.org".to_owned(),
-                    // "stun:stun.softjoys.com".to_owned(),
-                    // "stun:stun.voiparound.com".to_owned(),
-                    // "stun:stun.voipbuster.com".to_owned(),
-                    // "stun:stun.voipstunt.com".to_owned(),
-                    // "stun:stun.voxgratia.org".to_owned(),
-                    // "stun:stun.xten.com".to_owned(),
                 ],
                 ..Default::default()
             }],
