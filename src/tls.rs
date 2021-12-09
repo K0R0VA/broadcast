@@ -4,8 +4,8 @@ use rustls::internal::pemfile::{certs, pkcs8_private_keys};
 pub fn load_ssl() -> ServerConfig {
     use std::io::BufReader;
 
-    const CERT: &[u8] = include_bytes!("../192.168.0.7.pem");
-    const KEY: &[u8] = include_bytes!("../192.168.0.7-key.pem");
+    const CERT: &[u8] = include_bytes!("../192.168.0.26.pem");
+    const KEY: &[u8] = include_bytes!("../192.168.0.26-key.pem");
 
     let mut cert = BufReader::new(CERT);
     let mut key = BufReader::new(KEY);

@@ -21,8 +21,8 @@ use serde::Serialize;
 use session::Session;
 use state::State;
 use tls::load_ssl;
-use tokio::signal::ctrl_c;
-use turn_server::create_turn_server;
+// use tokio::signal::ctrl_c;
+// use turn_server::create_turn_server;
 use uuid::Uuid;
 
 use crate::messages::GetRoomName;
@@ -30,13 +30,13 @@ use crate::messages::GetRoomName;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
-    tokio::spawn(async move {
-        let server = create_turn_server()
-            .await
-            .unwrap();
-        ctrl_c().await.unwrap();
-        server.close().await.unwrap();
-    });
+    // tokio::spawn(async move {
+    //     let server = create_turn_server()
+    //         .await
+    //         .unwrap();
+    //     ctrl_c().await.unwrap();
+    //     server.close().await.unwrap();
+    // });
     let config = load_ssl();
     let state = Data::new(State::default().start());
     HttpServer::new(move || {
@@ -51,7 +51,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_room_name)
             .service(start)
     })
-    .bind_rustls("192.168.0.7:8081", config)?
+    .bind_rustls("192.168.0.26:8081", config)?
     .run()
     .await
 }
