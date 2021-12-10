@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class HttpService {
 
-  private readonly base_path: string = 'https://192.168.0.7:8081';
+  private readonly base_path: string = 'https://192.168.0.26:8081';
 
   constructor(private http: HttpClient) { }
 

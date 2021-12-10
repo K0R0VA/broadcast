@@ -11,7 +11,7 @@ export class HomeService {
   constructor(private httpService: HttpService, private router: Router) { }
 
   createRoom(roomName: string) {
-    this.httpService.Post('create-room', roomName).pipe(
+    return this.httpService.Post('create-room', roomName).pipe(
       tap((id) => {
         this.router.navigate(['room', id])
       })

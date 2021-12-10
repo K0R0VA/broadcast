@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@angular/core';
 import { distinctUntilChanged, interval, map, Observable, Observer, share, Subject, SubscriptionLike, takeWhile } from 'rxjs';
-import {WebSocketSubject, WebSocketSubjectConfig} from 'rxjs/webSocket/';
+import {WebSocketSubject, WebSocketSubjectConfig} from 'rxjs/webSocket'
 import { WebsocketConfig } from 'src/app/interfaces/websocket-config';
 import { config } from './websocket.config';
 
@@ -32,6 +32,8 @@ export class WebsocketService<ResponseMessage, RequestMessage> {
 
     this.config = {
       url: `${wsConfig.url}`,
+      serializer: (msg: RequestMessage) => JSON.stringify(msg),
+      deserializer: (msg: MessageEvent<ResponseMessage>) => msg.data,
       closeObserver: {
         next: () => {
           this.websocket$.unsubscribe();

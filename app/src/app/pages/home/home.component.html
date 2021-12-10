@@ -1,1 +1,7 @@
-<p>home works!</p>
+<nb-card status="info">
+    <nb-card-header >Create new room!</nb-card-header>
+    <nb-card-body class="home-body">
+        <input [(ngModel)]="name" type="text" style="width: 85%" fullWidth nbInput placeholder="Enter room name">
+        <button style="margin-left: auto;" status="primary" nbButton (click)="createRoom()" >Create</button>
+    </nb-card-body>
+</nb-card>
