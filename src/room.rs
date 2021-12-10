@@ -3,10 +3,11 @@ use std::collections::HashMap;
 use actix::{Actor, ActorContext, ActorFutureExt, Addr, Context, ContextFutureSpawner, Handler, WrapFuture};
 use uuid::Uuid;
 
-use crate::{messages::{CloseRoom, CloseSession, NewSession, NewUserInRoom, RoomSessions, StartWatch}, session::Session, state::State};
+use crate::{messages::{CloseRoom, CloseSession, NewSession, NewUserInRoom, RoomSessions, StartWatch, GetRoomInfo, RoomInfo}, session::Session, state::State};
 
 pub struct Room {
     pub uuid: Uuid,
+    pub name: String,
     pub sessions: HashMap<Uuid, Addr<Session>>,
     pub state: Addr<State>,
 }
@@ -29,11 +30,9 @@ impl Handler<NewSession> for Room {
     type Result = ();
 
     fn handle(&mut self, msg: NewSession, _: &mut Self::Context) -> Self::Result {
-        let sessions = self.sessions.iter().map(|(key, addr)| {
+        self.sessions.iter().for_each(|(_, addr)| {
             addr.do_send(NewUserInRoom(msg.id));
-            *key
-        }).collect();
-        msg.session.do_send(RoomSessions(sessions));
+        });
         self.sessions.insert(msg.id, msg.session);
     }
 }
@@ -60,3 +59,18 @@ impl Handler<StartWatch> for Room {
         }
     }
 }
+
+impl Handler<GetRoomInfo> for Room {
+    type Result = Option<RoomInfo>;
+
+    fn handle(&mut self, _: GetRoomInfo, _: &mut Self::Context) -> Self::Result {
+        Some(RoomInfo {
+            id: self.uuid,
+            name: self.name.clone(),
+            sessions: self.sessions.keys().copied().collect()
+        }) 
+    }
+}
+
+
+

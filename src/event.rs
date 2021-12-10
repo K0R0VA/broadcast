@@ -25,7 +25,6 @@ where
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum ServerEvent {
-    RoomSessions(Vec<Uuid>),
     NewSession(Uuid),
     BroadcastDescription(String),
     RecipientDescription {

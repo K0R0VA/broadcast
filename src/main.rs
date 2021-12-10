@@ -25,7 +25,7 @@ use tls::load_ssl;
 // use turn_server::create_turn_server;
 use uuid::Uuid;
 
-use crate::messages::GetRoomName;
+use crate::messages::GetRoomInfo;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -67,15 +67,15 @@ async fn create_room(room_name: String, state: Data<Addr<State>>) ->  Result<Htt
     HttpResponse::BadRequest().await
 }
 
-#[get("/room/{room_id}/name")]
+#[get("/room/{room_id}")]
 async fn get_room_name(room_id: Path<Uuid>, state: Data<Addr<State>>) -> Result<HttpResponse> {
-    if let Ok(Some(name)) = state
-        .send(GetRoomName {
+    if let Ok(Some(room)) = state
+        .send(GetRoomInfo {
             room_id: room_id.into_inner(),
         })
         .await
     {
-        return Ok(HttpResponse::Ok().json(name));
+        return Ok(HttpResponse::Ok().json(room));
     }
     HttpResponse::NotFound().await
 }

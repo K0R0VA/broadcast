@@ -107,7 +107,7 @@ impl StreamHandler<Result<Message, ProtocolError>> for Session {
                             .send(EnterTheRoom { room_id })
                             .into_actor(self)
                             .then(|result, actor, ctx| {
-                                if let Ok(Some((_, room))) = result {
+                                if let Ok(Some(room)) = result {
                                     room.send(NewSession {
                                         id: actor.id,
                                         session: ctx.address(),
@@ -196,14 +196,6 @@ impl Handler<NewUserInRoom> for Session {
 
     fn handle(&mut self, msg: NewUserInRoom, ctx: &mut Self::Context) -> Self::Result {
         ctx.text(serde_json::to_string(&ServerEvent::NewSession(msg.0)).unwrap());
-    }
-}
-
-impl Handler<RoomSessions> for Session {
-    type Result = ();
-
-    fn handle(&mut self, msg: RoomSessions, ctx: &mut Self::Context) -> Self::Result {
-        ctx.text(serde_json::to_string(&ServerEvent::RoomSessions(msg.0)).unwrap());
     }
 }
 

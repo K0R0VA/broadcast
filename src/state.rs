@@ -1,15 +1,17 @@
 use crate::{
-    messages::{CloseRoom, CloseSession, CreateRoom, EnterTheRoom, GetRoomName, NewSession},
+    messages::{
+        CloseRoom, CloseSession, CreateRoom, EnterTheRoom, GetRoomInfo, NewSession, RoomInfo,
+    },
     room::Room,
     session::Session,
 };
-use actix::{Actor, Addr, AsyncContext, Context, Handler};
-use std::{collections::HashMap};
+use actix::{Actor, Addr, AsyncContext, Context, Handler, ResponseFuture};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Default)]
 pub struct State {
-    rooms: HashMap<Uuid, (String, Addr<Room>)>,
+    rooms: HashMap<Uuid, Addr<Room>>,
     sessions: HashMap<Uuid, Addr<Session>>,
 }
 
@@ -23,12 +25,13 @@ impl Handler<CreateRoom> for State {
     fn handle(&mut self, msg: CreateRoom, ctx: &mut Self::Context) -> Self::Result {
         let id: Uuid = Uuid::new_v4();
         let room = Room {
+            name: msg.room_name,
             uuid: id,
             state: ctx.address(),
             sessions: Default::default(),
         }
         .start();
-        self.rooms.insert(id, (msg.room_name, room));
+        self.rooms.insert(id, room);
         Some(id)
     }
 }
@@ -58,19 +61,25 @@ impl Handler<CloseRoom> for State {
 }
 
 impl Handler<EnterTheRoom> for State {
-    type Result = Option<(String, Addr<Room>)>;
+    type Result = Option<Addr<Room>>;
 
     fn handle(&mut self, msg: EnterTheRoom, _: &mut Self::Context) -> Self::Result {
         self.rooms.get(&msg.room_id).cloned()
     }
 }
 
-impl Handler<GetRoomName> for State {
-    type Result = Option<String>;
+impl Handler<GetRoomInfo> for State {
+    type Result = ResponseFuture<Option<RoomInfo>>;
 
-    fn handle(&mut self, msg: GetRoomName, _: &mut Self::Context) -> Self::Result {
-        self.rooms
-            .get(&msg.room_id)
-            .map(|(room_name, _)| room_name.clone())
+    fn handle(&mut self, msg: GetRoomInfo, _: &mut Self::Context) -> Self::Result {
+        if let Some(addr) = self.rooms.get(&msg.room_id).cloned() {
+            return Box::pin(async move { 
+                if let Ok(room) = addr.send(msg).await {
+                    return room;
+                } 
+                None
+            })
+        }
+        Box::pin(async { None })
     }
 }

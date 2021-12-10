@@ -1,5 +1,6 @@
 use actix::{Addr, Message};
 use recipient::Recipient;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{recipient, room::Room, session::Session};
@@ -40,7 +41,7 @@ pub struct EnterTheRoom {
 }
 
 impl Message for EnterTheRoom {
-    type Result = Option<(String, Addr<Room>)>;
+    type Result = Option<Addr<Room>>;
 }
 
 pub struct NewRecipient {
@@ -61,12 +62,19 @@ impl Message for RecipientResponse {
     type Result = ();
 }
 
-pub struct GetRoomName {
+pub struct GetRoomInfo {
     pub room_id: Uuid,
 }
 
-impl Message for GetRoomName {
-    type Result = Option<String>;
+#[derive(Serialize)]
+pub struct RoomInfo {
+    pub id: Uuid,
+    pub name: String,
+    pub sessions: Vec<Uuid>
+}
+
+impl Message for GetRoomInfo {
+    type Result = Option<RoomInfo>;
 }
 
 pub struct NewUserInRoom(pub Uuid);
